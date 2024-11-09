@@ -1,0 +1,87 @@
+pip install gradientai --upgrade
+
+
+
+
+import os
+os.environ['GRADIENT_WORKSPACE_ID']='8871e545-90b6-43cd-ab64-a1ffe13d0b7a_workspace'
+os.environ['GRADIENT_ACCESS_TOKEN']='2OzQnrLEsWfrtmKp4NACQS4rortuiuGs'
+
+
+
+
+
+from gradientai import Gradient
+
+class Main:
+    def __init__(self):
+        pass
+
+    def addition(self, num1, num2):
+        return num1 + num2
+
+    def subtraction(self, num1, num2):
+        return num1 - num2
+
+    def multiplication(self, num1, num2):
+        return num1 * num2
+
+    def division(self, num1, num2):
+        if num2 == 0:
+            return "Division by zero is not allowed"
+        return num1 / num2
+def prompt_question_description():
+    print("Please describe your question or problem in detail:")
+    description = input("Description: ")
+    return description
+
+def main():
+     # Prompt the user to describe the question
+    question_description = prompt_question_description()
+    try:
+        gradient = Gradient()
+        base_model = gradient.get_base_model(base_model_slug="llama2-7b-chat")
+        new_model_adapter = base_model.create_model_adapter(name="test_case_generator", learning_rate=0.1)
+        completion = new_model_adapter.complete(query=question_description, temperature=0.2, max_generated_token_count=511).generated_output
+        print(f"Generated(before fineTuning):{completion}")
+        print(f"Created Model adapter with id: {new_model_adapter.id}")
+
+        # Samples for Fine-Tuning
+        samples = [
+            {
+                "inputs": "<s>[INST] <<SYS>>\nSystem: Generate test case for addition of 2 and 3.\n<</SYS>>\n\nUser: 2 + 3 [/INST] {{ response }} </s>",
+                "targets": "assertEquals(5, test.addition(2, 3));"
+            },
+            {
+                "inputs": "<s>[INST] <<SYS>>\nSystem: Generate test case for subtraction of 5 from 10.\n<</SYS>>\n\nUser: 10 - 5 [/INST] {{ response }} </s>",
+                "targets": "assertEquals(5, test.subtraction(10, 5));"
+            },
+            {
+                "inputs": "<s>[INST] <<SYS>>\nSystem: Generate test case for multiplication of 4 and 6.\n<</SYS>>\n\nUser: 4 * 6 [/INST] {{ response }} </s>",
+                "targets": "assertEquals(24, test.multiplication(4, 6));"
+            },
+            {
+                "inputs": "<s>[INST] <<SYS>>\nSystem: Generate test case for division of 10 by 2.\n<</SYS>>\n\nUser: 10 / 2 [/INST] {{ response }} </s>",
+                "targets": "assertEquals(5, test.division(10, 2));"
+            },
+            # Add more samples as needed
+        ]
+
+        # FineTuning
+        num_epochs = 2
+        print("Fine Tuning the model:")
+        for epoch in range(num_epochs):
+            print(f"Iteration {epoch + 1}")
+            new_model_adapter.fine_tune(samples=samples)
+        print("Fine Tuning Completed")
+        completion = new_model_adapter.complete(query=question_description, max_generated_token_count=511).generated_output
+        print(f"Final Outout:{completion}")
+
+        # Cleanup
+        new_model_adapter.delete()
+        gradient.close()
+    except Exception as e:
+        print(f"Error: {e}")
+    
+if __name__ == "__main__":
+    main()

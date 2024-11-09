@@ -1,0 +1,4 @@
+cd ~/automate-unit-test/
+export PATH=/c/Users/vishw/.jdks/azul-1.8.0_382/bin/:$PATH
+javac -classpath /c/Users/vishw/.jdks/azul-1.8.0_382/lib/tools.jar *.java
+javadoc -doclet Doclet -docletpath . Main.java
